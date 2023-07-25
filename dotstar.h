@@ -1,7 +1,7 @@
 //==========================================================================================================
 // dotstar.h - Defines the interface to control DotStar LED strips
 // Author: Akram S. Ali
-// Updated: 7/21/2023
+// Updated: 7/25/2023
 //==========================================================================================================
 #pragma once
 
@@ -12,8 +12,8 @@ class CDotStar
 
 public:
 
-    // constructor
-    CDotStar() {m_leds = nullptr;}
+    // Constructor
+    CDotStar(bool bitbang=true) {m_leds = nullptr; m_bitbang_setting = bitbang;}
 
     // Initialize the LED strip hardware
     void init(int led_count);
@@ -36,7 +36,15 @@ public:
     // This will clear the LED strip or set a single color to all LEDs
     void clear(int R=0, int G=0, int B=0, bool do_show=false);
 
+
 protected:
+
+    // This function sends data to the LED strip by SPI or bitbanging the signals
+    void send_data(uint8_t data);
+
+    // Bitbang or SPI setting
+    bool m_bitbang_setting;
+
     // Total number of LEDs in the strip
     int m_led_count;
 

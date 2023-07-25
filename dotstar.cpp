@@ -1,7 +1,7 @@
 //==========================================================================================================
 // dotstar.cpp - Implements the interface to control DotStar LED strips
 // Author: Akram S. Ali
-// Updated: 7/21/2023
+// Updated: 7/25/2023
 //==========================================================================================================
 
 #include <Arduino.h>
@@ -26,22 +26,23 @@ static void init_hardware()
 
 
 //----------------------------------------------------------------------------------------------------------
-// bitbang() - This function sends data to the LED strip by bitbanging the signals
+// send_data() - This function sends data to the LED strip by SPI or bitbanging the signals
 //----------------------------------------------------------------------------------------------------------
-static void bitbang(uint8_t data)
+void CDotStar::send_data(uint8_t data)
 {
-    SPI.transfer(data); return;
+    // Transfer data via SPI
+    if (!m_bitbang_setting) SPI.transfer(data); return;
 
-  // Send each bit of data (MSB first)
-  for (int i = 7; i >= 0; i--)
-  {
-    digitalWrite(DATA_PIN, (data >> i) & 1);
+    // Send each bit of data (MSB first)
+    for (int i = 7; i >= 0; i--)
+    {
+        digitalWrite(DATA_PIN, (data >> i) & 1);
 
-    digitalWrite(CLOCK_PIN, HIGH);
-    delayMicroseconds(1); // A small delay to stabilize the clock
-    digitalWrite(CLOCK_PIN, LOW);
-    delayMicroseconds(1); // A small delay to stabilize the clock
-  }
+        digitalWrite(CLOCK_PIN, HIGH);
+        delayMicroseconds(1); // A small delay to stabilize the clock
+        digitalWrite(CLOCK_PIN, LOW);
+        delayMicroseconds(1); // A small delay to stabilize the clock
+    }
 }
 //----------------------------------------------------------------------------------------------------------
 
@@ -67,7 +68,7 @@ void CDotStar::init(int led_count)
     memset(m_leds, 0, sizeof(led_t)*led_count);
 
     // Set the hardware GPIO pins of the LED strip
-    // init_hardware();
+    if (m_bitbang_setting) init_hardware();
 }
 //----------------------------------------------------------------------------------------------------------
 
@@ -126,21 +127,21 @@ void CDotStar::set_brightness(int level)
 void CDotStar::show()
 {
     // Send start frame - 32 bits of zeros
-    bitbang(0x00);
-    bitbang(0x00);
-    bitbang(0x00);
-    bitbang(0x00);
+    send_data(0x00);
+    send_data(0x00);
+    send_data(0x00);
+    send_data(0x00);
 
     // Get a byte pointer to the start of the LED array
     uint8_t* ptr = (uint8_t*)m_leds;
 
     // Send data to the LED strip one by one by bitbanging the signals
     for (int i=0; i<sizeof(led_t)*m_led_count; i++)
-        bitbang(*ptr++);
+        send_data(*ptr++);
 
     // Send end frame - at least 32 bits of 1s based on the number of LEDs in the strip
     for (int i = 0; i < ((m_led_count + 15) / 16); i++)
-        bitbang(0xFF);
+        send_data(0xFF);
 }
 //----------------------------------------------------------------------------------------------------------
 
@@ -150,7 +151,7 @@ void CDotStar::show()
 //----------------------------------------------------------------------------------------------------------
 void CDotStar::set_blink_period(int period_ms)
 {
-    
+    // WIP
 }
 //----------------------------------------------------------------------------------------------------------
 
