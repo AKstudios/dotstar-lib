@@ -34,7 +34,7 @@ public:
     void set_blink_period(int period_ms);
 
     // This will clear the LED strip or set a single color to all LEDs
-    void clear(int R=0, int G=0, int B=0);
+    void clear(int R=0, int G=0, int B=0, bool do_show=false);
 
 protected:
     // Total number of LEDs in the strip

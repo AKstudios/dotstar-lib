@@ -7,6 +7,7 @@
 #include <Arduino.h>
 #include "dotstar.h"
 #include <string.h>
+#include <SPI.h>
 
 // Define pins connected to DotStar LED strip
 const int DATA_PIN = 11; // DI Data pin (MOSI) 
@@ -29,6 +30,8 @@ static void init_hardware()
 //----------------------------------------------------------------------------------------------------------
 static void bitbang(uint8_t data)
 {
+    SPI.transfer(data); return;
+
   // Send each bit of data (MSB first)
   for (int i = 7; i >= 0; i--)
   {
@@ -64,7 +67,7 @@ void CDotStar::init(int led_count)
     memset(m_leds, 0, sizeof(led_t)*led_count);
 
     // Set the hardware GPIO pins of the LED strip
-    init_hardware();
+    // init_hardware();
 }
 //----------------------------------------------------------------------------------------------------------
 
@@ -74,9 +77,6 @@ void CDotStar::init(int led_count)
 //----------------------------------------------------------------------------------------------------------
 void CDotStar::set_led(int index, int R, int G, int B, bool blink)
 {
-    // The first 3 bits of the LED frame are always 111
-    const uint8_t led_frame_start = 0b11100000;
-
     // Sanity check - make sure LED index falls within the acceptable range
     if (index < 0 || index >= m_led_count) return;
 
@@ -94,9 +94,10 @@ void CDotStar::set_led(int index, int R, int G, int B, bool blink)
 //----------------------------------------------------------------------------------------------------------
 // show_led() - This function will set the R, G, B values of an LED and send data to the LED strip
 //----------------------------------------------------------------------------------------------------------
-void CDotStar::show_led(int index, int R, int G, int B, bool blink=false)
+void CDotStar::show_led(int index, int R, int G, int B, bool blink)
 {
-    
+    set_led(index, R, G, B, blink);
+    show();
 }
 //----------------------------------------------------------------------------------------------------------
 
@@ -106,12 +107,15 @@ void CDotStar::show_led(int index, int R, int G, int B, bool blink=false)
 //----------------------------------------------------------------------------------------------------------
 void CDotStar::set_brightness(int level)
 {
+    // The first 3 bits of the LED frame are always 111
+    const uint8_t led_frame_start = 0b11100000;
+
     // Sanity check - make sure the level falls within the acceptable range
     if (level < 1 && level > 31) return;
 
     // Set the brightness of each LED one by one in the array
     for(int i=0; i<m_led_count; i++)
-        m_leds[i].brightness = level;
+        m_leds[i].brightness = led_frame_start | level;
 }
 //----------------------------------------------------------------------------------------------------------
 
@@ -135,7 +139,7 @@ void CDotStar::show()
         bitbang(*ptr++);
 
     // Send end frame - at least 32 bits of 1s based on the number of LEDs in the strip
-    for (int i = 0; i < (m_led_count + 15) / 16; i++)
+    for (int i = 0; i < ((m_led_count + 15) / 16); i++)
         bitbang(0xFF);
 }
 //----------------------------------------------------------------------------------------------------------
@@ -154,8 +158,16 @@ void CDotStar::set_blink_period(int period_ms)
 //----------------------------------------------------------------------------------------------------------
 // clear() - This will clear the LED strip or set a single color to all LEDs
 //----------------------------------------------------------------------------------------------------------
-void CDotStar::clear(int R=0, int G=0, int B=0)
+void CDotStar::clear(int R, int G, int B, bool do_show)
 {
-    
+    for (int i=0; i<m_led_count; i++)
+    {
+        // Fill in the attributes of this LED
+        m_leds[i].red   = R;
+        m_leds[i].green = G;
+        m_leds[i].blue  = B;
+    }
+
+    if (do_show) show();
 }
 //----------------------------------------------------------------------------------------------------------
